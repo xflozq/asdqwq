@@ -1,0 +1,85 @@
+-- Configuration
+local MONSTER_TAG = "Monster"  -- Tag used to identify monster parts
+local MONSTER_COLOR = Color3.fromRGB(255, 0, 0)  -- Color of the monster ESP (Red in this case)
+local MONSTER_TRANSPARENCY = 0.5  -- Transparency of the monster ESP
+
+local PERSON_TAG = "Person"  -- Tag used to identify people parts
+local PERSON_NAME_COLOR = Color3.fromRGB(0, 255, 0)  -- Color of the name tag for people (Green in this case)
+local PERSON_NAME_OFFSET = Vector3.new(0, 3, 0)  -- Offset above the person's part for the name tag
+
+-- Function to create a BillboardGui for ESP
+local function createESP(part, color, transparency)
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Size = UDim2.new(2, 0, 2, 0)  -- Size of the ESP indicator
+    billboardGui.AlwaysOnTop = true
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0)  -- Offset above the part
+    billboardGui.Enabled = true
+
+    local espFrame = Instance.new("Frame", billboardGui)
+    espFrame.Size = UDim2.new(1, 0, 1, 0)
+    espFrame.BackgroundColor3 = color
+    espFrame.BackgroundTransparency = transparency
+
+    billboardGui.Parent = part
+end
+
+-- Function to create a BillboardGui for name tags
+local function createNameTag(part, name, color, offset)
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Size = UDim2.new(0, 200, 0, 50)  -- Size of the name tag
+    billboardGui.AlwaysOnTop = true
+    billboardGui.StudsOffset = offset  -- Offset above the part
+    billboardGui.Enabled = true
+
+    local nameLabel = Instance.new("TextLabel", billboardGui)
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.Text = name
+    nameLabel.TextColor3 = color
+    nameLabel.TextScaled = true
+    nameLabel.BackgroundTransparency = 1
+
+    billboardGui.Parent = part
+end
+
+-- Function to handle when a new monster or person is detected
+local function onObjectAdded(objectPart, tag, color, transparency)
+    if objectPart:IsA("BasePart") then
+        createESP(objectPart, color, transparency)
+    end
+end
+
+-- Function to search for monsters and people in the workspace
+local function searchObjects(tag, color, transparency)
+    for _, child in pairs(game.Workspace:GetChildren()) do
+        if child:IsA("Model") and child:FindFirstChildWhichIsA("BasePart") then
+            local primaryPart = child.PrimaryPart or child:FindFirstChildWhichIsA("BasePart")
+            if child:FindFirstChild(tag) then
+                onObjectAdded(primaryPart, tag, color, transparency)
+            elseif tag == PERSON_TAG then
+                local humanoid = child:FindFirstChild("Humanoid")
+                if humanoid then
+                    createNameTag(primaryPart, child.Name, PERSON_NAME_COLOR, PERSON_NAME_OFFSET)
+                end
+            end
+        end
+    end
+end
+
+-- Start searching for monsters and people when the script is first run
+searchObjects(MONSTER_TAG, MONSTER_COLOR, MONSTER_TRANSPARENCY)
+searchObjects(PERSON_TAG, PERSON_NAME_COLOR, Vector3.new(0, 3, 0))  -- Adjust offset for people
+
+-- Monitor for new objects being added to the workspace
+game.Workspace.ChildAdded:Connect(function(child)
+    if child:IsA("Model") and child:FindFirstChildWhichIsA("BasePart") then
+        local primaryPart = child.PrimaryPart or child:FindFirstChildWhichIsA("BasePart")
+        if child:FindFirstChild(MONSTER_TAG) then
+            onObjectAdded(primaryPart, MONSTER_TAG, MONSTER_COLOR, MONSTER_TRANSPARENCY)
+        elseif child:FindFirstChild(PERSON_TAG) then
+            local humanoid = child:FindFirstChild("Humanoid")
+            if humanoid then
+                createNameTag(primaryPart, child.Name, PERSON_NAME_COLOR, PERSON_NAME_OFFSET)
+            end
+        end
+    end
+end)
